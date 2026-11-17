@@ -2,19 +2,23 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// GitHub Pages repo name - change this to your repo name
+const REPO_NAME = 'orbitt-vault';
+
 export default defineConfig({
+  base: `/${REPO_NAME}/`,
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon-v2.png', 'favicon-v2.png', 'launch-1206x2622.png', 'tokens/*'],
       manifest: {
-        id: '/',
-        start_url: '/',
-        scope: '/',
-        name: 'Orbit Vault Simulator',
-        short_name: 'Orbit Vault',
-        description: 'A local crypto wallet interface simulator with read-only market quotes',
+        id: `/${REPO_NAME}/`,
+        start_url: `/${REPO_NAME}/`,
+        scope: `/${REPO_NAME}/`,
+        name: 'Orbitt Vault',
+        short_name: 'Orbitt Vault',
+        description: 'A local crypto wallet interface simulator with read-only market quotes and key-based access',
         theme_color: '#000000',
         background_color: '#ab9ff2',
         display: 'standalone',

@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { PRICE_SOURCE, SUPPORTED_ASSETS } from './catalog';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { SUPPORTED_ASSETS } from './catalog';
 import { activeAccount, applyMarketPrices, createDefaultData, portfolioValueUsd, stepPrices } from './logic';
 import type { MarketResponse, Token, Transaction, WalletData } from './types';
 
-export const STORAGE_KEY = 'orbit-vault-sim-v1';
+export const STORAGE_KEY = 'orbitt-vault-sim-v1';
 const ACKNOWLEDGEMENT_KEYS = [`${STORAGE_KEY}-ack`, `${STORAGE_KEY.replace('-v1', '')}-ack`];
 const readAcknowledgement = () => ACKNOWLEDGEMENT_KEYS.some(key => localStorage.getItem(key) === 'yes');
 const HISTORY_POINTS = 60;
@@ -73,7 +74,7 @@ function migrateLegacy(input: Record<string, unknown>): WalletData {
 }
 
 export function normalizeWalletData(input: unknown): WalletData {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Invalid Orbit Vault configuration.');
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Invalid Orbitt Vault configuration.');
   const raw = input as Record<string, unknown>;
   if (raw.version !== 2 || !Array.isArray(raw.accounts) || !Array.isArray(raw.assets)) return migrateLegacy(raw);
   const defaults = createDefaultData();
@@ -85,7 +86,7 @@ export function normalizeWalletData(input: unknown): WalletData {
     return { ...catalog, ...asset, icon: catalog?.icon ?? asset.icon, iconOverride: persistedOverride ?? oldMark, coinPaprikaId: asset.coinPaprikaId ?? catalog?.coinPaprikaId, price: safeNumber(asset.price), marketPrice: safeNumber(asset.marketPrice, asset.price), change24h: safeNumber(asset.change24h), volatility: Math.max(0, safeNumber(asset.volatility, .0002)) };
   });
   const accounts = (raw.accounts as WalletData['accounts']).filter(account => account && typeof account.id === 'string' && typeof account.name === 'string').map(account => ({
-    ...account, address: String(account.address ?? 'orbit.sim.local'), avatar: String(account.avatar ?? '◈'),
+    ...account, address: String(account.address ?? 'orbitt.sim.local'), avatar: String(account.avatar ?? '◈'),
     cashBalanceUsd: Math.max(0, safeNumber(account.cashBalanceUsd)), balances: Object.fromEntries(Object.entries(account.balances ?? {}).map(([id, value]) => [id, Math.max(0, safeNumber(value))])),
     assetOrder: Array.isArray(account.assetOrder) ? account.assetOrder.filter(id => assets.some(asset => asset.id === id)) : [],
     hiddenAssets: Array.isArray(account.hiddenAssets) ? account.hiddenAssets : [], watchlist: Array.isArray(account.watchlist) ? account.watchlist : [],
@@ -218,70 +219,82 @@ let ticks = 0;
 const initialData = loadData();
 const initialStatus: MarketStatus = { ready: false, source: 'snapshot', provider: 'CoinPaprika', message: 'Loading current market prices…', updatedAt: null };
 
-export const useStore = create<State>((set, get) => ({
-  data: initialData,
-  acknowledged: readAcknowledgement(),
-  marketStatus: initialStatus,
-  error: '',
-  tick: () => set(state => {
-    if (!state.marketStatus.ready) return state;
-    const nextTick = ticks + 1;
-    const advanceHistory = nextTick % 60 === 0;
-    const assets = stepPrices(state.data.assets);
-    const nextData = { ...state.data, assets };
-    const marketHistory = { ...nextData.marketHistory };
-    for (const asset of assets) {
-      const points = marketHistory[asset.id] ?? [];
-      const retained = points.length ? (advanceHistory ? points.slice(-59) : points.slice(0, -1)) : [];
-      marketHistory[asset.id] = [...retained, asset.price];
-    }
-    const portfolioPoints = state.data.portfolioHistory;
-    const retainedPortfolio = portfolioPoints.length ? (advanceHistory ? portfolioPoints.slice(-59) : portfolioPoints.slice(0, -1)) : [];
-    const portfolioHistory = [...retainedPortfolio, portfolioValueUsd(nextData)];
-    nextData.marketHistory = marketHistory;
-    nextData.portfolioHistory = portfolioHistory;
-    ticks = nextTick;
-    if (ticks % 15 === 0) { try { save(nextData); } catch { /* Keep the in-memory simulator usable when local storage is full. */ } }
-    return { data: nextData };
-  }),
-  refreshPrices: async (signal) => {
-    try {
-      const { response, updatedAt, provider } = await fetchMarketPrices(get().data.assets, signal);
-      set(state => {
-        const merged = applyMarketPrices(state.data, response, updatedAt, provider);
-        const marketHistory = { ...merged.marketHistory };
-        for (const asset of merged.assets) {
-          if (!response[asset.coingeckoId ?? '']) continue;
+export const useStore = create<State>()(
+  persist(
+    (set, get) => ({
+      data: initialData,
+      acknowledged: readAcknowledgement(),
+      marketStatus: initialStatus,
+      error: '',
+      tick: () => set(state => {
+        if (!state.marketStatus.ready) return state;
+        const nextTick = ticks + 1;
+        const advanceHistory = nextTick % 60 === 0;
+        const assets = stepPrices(state.data.assets);
+        const nextData = { ...state.data, assets };
+        const marketHistory = { ...nextData.marketHistory };
+        for (const asset of assets) {
           const points = marketHistory[asset.id] ?? [];
-          marketHistory[asset.id] = points.length ? [...points.slice(0, -1), asset.price] : [asset.price];
+          const retained = points.length ? (advanceHistory ? points.slice(-59) : points.slice(0, -1)) : [];
+          marketHistory[asset.id] = [...retained, asset.price];
         }
-        merged.marketHistory = marketHistory;
-        const portfolioHistory = [...merged.portfolioHistory.slice(0, -1), portfolioValueUsd(merged)];
-        merged.portfolioHistory = portfolioHistory;
-        try { save(merged); } catch { /* Market refresh remains available in memory. */ }
-        return { data: merged, marketStatus: { ready: true, source: 'live', provider, message: `${provider} snapshot received; prices drift locally between updates.`, updatedAt } };
-      });
-    } catch (error) {
-      if (signal?.aborted) return;
-      const rawMessage = error instanceof Error ? error.message : '';
-      const message = rawMessage.toLowerCase().includes('fetch') ? 'Market provider could not be reached.' : rawMessage || 'Price provider is unavailable.';
-      set(state => ({ marketStatus: { ...state.marketStatus, ready: true, source: 'snapshot', message: `${message} Using the latest saved market snapshot; prices still simulate locally.`, updatedAt: state.data.assets.find(asset => asset.priceMode === 'market')?.priceRetrievedAt ?? state.marketStatus.updatedAt } }));
+        const portfolioPoints = state.data.portfolioHistory;
+        const retainedPortfolio = portfolioPoints.length ? (advanceHistory ? portfolioPoints.slice(-59) : portfolioPoints.slice(0, -1)) : [];
+        const portfolioHistory = [...retainedPortfolio, portfolioValueUsd(nextData)];
+        nextData.marketHistory = marketHistory;
+        nextData.portfolioHistory = portfolioHistory;
+        ticks = nextTick;
+        if (ticks % 15 === 0) { try { save(nextData); } catch { /* Keep the in-memory simulator usable when local storage is full. */ } }
+        return { data: nextData };
+      }),
+      refreshPrices: async (signal) => {
+        try {
+          const { response, updatedAt, provider } = await fetchMarketPrices(get().data.assets, signal);
+          set(state => {
+            const merged = applyMarketPrices(state.data, response, updatedAt, provider);
+            const marketHistory = { ...merged.marketHistory };
+            for (const asset of merged.assets) {
+              if (!response[asset.coingeckoId ?? '']) continue;
+              const points = marketHistory[asset.id] ?? [];
+              marketHistory[asset.id] = points.length ? [...points.slice(0, -1), asset.price] : [asset.price];
+            }
+            merged.marketHistory = marketHistory;
+            const portfolioHistory = [...merged.portfolioHistory.slice(0, -1), portfolioValueUsd(merged)];
+            merged.portfolioHistory = portfolioHistory;
+            try { save(merged); } catch { /* Market refresh remains available in memory. */ }
+            return { data: merged, marketStatus: { ready: true, source: 'live', provider, message: `${provider} snapshot received; prices drift locally between updates.`, updatedAt } };
+          });
+        } catch (error) {
+          if (signal?.aborted) return;
+          const rawMessage = error instanceof Error ? error.message : '';
+          const message = rawMessage.toLowerCase().includes('fetch') ? 'Market provider could not be reached.' : rawMessage || 'Price provider is unavailable.';
+          set(state => ({ marketStatus: { ...state.marketStatus, ready: true, source: 'snapshot', message: `${message} Using the latest saved market snapshot; prices still simulate locally.`, updatedAt: state.data.assets.find(asset => asset.priceMode === 'market')?.priceRetrievedAt ?? state.marketStatus.updatedAt } }));
+        }
+      },
+      update: fn => set(state => {
+        const data = fn(state.data);
+        let error = '';
+        try { save(data); } catch { error = 'Local storage is full. Export the configuration before adding more data.'; }
+        return { data, error };
+      }),
+      setData: input => {
+        try { const data = normalizeWalletData(input); save(data); set({ data, error: '' }); return true; }
+        catch (error) { set({ error: error instanceof Error ? error.message : 'Could not load this configuration.' }); return false; }
+      },
+      acknowledge: () => { localStorage.setItem(`${STORAGE_KEY}-ack`, 'yes'); set({ acknowledged: true }); },
+      reset: () => { const data = createDefaultData(); save(data); set({ data, error: '' }); },
+      clearError: () => set({ error: '' }),
+    }),
+    {
+      name: 'orbitt-vault-sim',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        data: state.data,
+        acknowledged: state.acknowledged,
+      }),
     }
-  },
-  update: fn => set(state => {
-    const data = fn(state.data);
-    let error = '';
-    try { save(data); } catch { error = 'Local storage is full. Export the configuration before adding more data.'; }
-    return { data, error };
-  }),
-  setData: input => {
-    try { const data = normalizeWalletData(input); save(data); set({ data, error: '' }); return true; }
-    catch (error) { set({ error: error instanceof Error ? error.message : 'Could not load this configuration.' }); return false; }
-  },
-  acknowledge: () => { localStorage.setItem(`${STORAGE_KEY}-ack`, 'yes'); set({ acknowledged: true }); },
-  reset: () => { const data = createDefaultData(); save(data); set({ data, error: '' }); },
-  clearError: () => set({ error: '' }),
-}));
+  )
+);
 
 // Other tabs and installed PWA windows share the same persistent wallet. Apply
 // their latest snapshot without saving it again, which would create an echo.
