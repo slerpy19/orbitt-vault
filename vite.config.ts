@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // GitHub Pages repo name - change this to your repo name
 const REPO_NAME = 'orbitt-vault';
+const GITHUB_USER = 'slerpy19';
 
 export default defineConfig({
   base: `/${REPO_NAME}/`,

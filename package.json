@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://cissi.github.io/orbitt-vault",
+  "homepage": "https://slerpy19.github.io/orbitt-vault",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
