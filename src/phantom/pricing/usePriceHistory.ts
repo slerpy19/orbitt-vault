@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { OHLCPoint } from '../charts/LineChart';
-import { TIMEFRAMES, type TimeframeKey } from '../charts/ChartTime';
+import type { OHLCPoint } from '../../phantom/charts/LineChart';
+import { TIMEFRAMES, type TimeframeKey } from '../../phantom/charts/ChartTime';
 
 interface PriceHistoryState {
   data: OHLCPoint[];

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { LineChart as PhantomLineChart, MiniLine, type OHLCPoint, type TimeframeKey } from './phantom/charts/LineChart';
-import { chartTime, TIMEFRAMES, type TimeframeKey as TFKey } from './phantom/charts/ChartTime';
+import { LineChart as PhantomLineChart, MiniLine, type OHLCPoint } from './phantom/charts/LineChart';
+import { chartTime, TIMEFRAMES, type TimeframeKey } from './phantom/charts/ChartTime';
 import type { ChartPeriod, Settings } from './types';
 import { toDisplayCurrency } from './logic';
 
@@ -18,11 +18,11 @@ type Props = {
   currentPrice?: number;
   candleMode?: boolean;
   onCandleModeChange?: (enabled: boolean) => void;
-  timeframe?: TFKey;
-  onTimeframeChange?: (tf: TFKey) => void;
+  timeframe?: TimeframeKey;
+  onTimeframeChange?: (tf: TimeframeKey) => void;
 };
 
-const PERIOD_TO_TIMEFRAME: Record<ChartPeriod, TFKey> = {
+const PERIOD_TO_TIMEFRAME: Record<ChartPeriod, TimeframeKey> = {
   '1H': 'LIVE',
   '24H': '1D',
   '1D': '1D',
@@ -89,10 +89,10 @@ export default function PriceChart({
     return last >= first ? 'up' : 'down';
   }, [data]);
 
-  const handleTimeframeChange = (newTf: TFKey) => {
+  const handleTimeframeChange = (newTf: TimeframeKey) => {
     onTimeframeChange?.(newTf);
     if (period && onPeriodChange) {
-      const reverseMap: Record<TFKey, ChartPeriod> = {
+      const reverseMap: Record<TimeframeKey, ChartPeriod> = {
         'LIVE': 'LIVE',
         '1D': '1D',
         '1W': '1W',

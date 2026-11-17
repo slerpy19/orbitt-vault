@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="it" data-launch="visible">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ab9ff2" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Orbit Vault" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/orbitt-vault/apple-touch-icon-v2.png" />
+    <link rel="apple-touch-startup-image" href="/orbitt-vault/launch-1206x2622.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/orbitt-vault/favicon-v2.png" />
+    <link rel="icon" type="image/svg+xml" sizes="any" href="/orbitt-vault/app-icon.svg" />
+    <link rel="preload" as="image" type="image/svg+xml" href="/orbitt-vault/app-icon.svg" />
+    <title>Orbit Vault</title>
+    <style>html,body{color:#f7f7f8;background:#ab9ff2;margin:0}html[data-launch]{--lightningcss-light:initial!important;--lightningcss-dark: !important;color-scheme:light!important;background:#ab9ff2!important}html[data-launch] #root{opacity:0;pointer-events:none}#launch-screen{z-index:1000;width:100%;height:var(--app-viewport-height,100%);opacity:1;touch-action:none;-webkit-user-select:none;user-select:none;will-change:opacity;background:#ab9ff2;position:fixed;inset:0;overflow:hidden}#launch-screen img{width:52vw;max-width:260px;height:auto;display:block;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}html[data-launch=leaving] #root{opacity:1;transition:opacity .32s cubic-bezier(.22,1,.36,1)}#launch-screen.is-leaving{opacity:0;transition:opacity .32s cubic-bezier(.22,1,.36,1)}#launch-error{right:20px;bottom:max(24px,env(safe-area-inset-bottom));color:#100c1a;background:#fffdf8;border-radius:18px;padding:18px;font:15px/1.5 -apple-system,BlinkMacSystemFont,sans-serif;position:absolute;left:20px}#launch-error[hidden]{display:none}#launch-error p{margin:0 0 12px}#launch-retry{color:#fff;cursor:pointer;background:#100c1a;border:0;border-radius:999px;width:100%;min-height:46px;font:600 15px -apple-system,BlinkMacSystemFont,sans-serif}@media (prefers-reduced-motion:reduce){html[data-launch=leaving] #root,#launch-screen.is-leaving{transition:none}}</style>
+    <script type="module" crossorigin src="/orbitt-vault/assets/index-B52WCk-Y.js"></script>
+    <link rel="stylesheet" crossorigin href="/orbitt-vault/assets/index-BF7UCuaY.css">
+  <link rel="manifest" href="/orbitt-vault/manifest.webmanifest"></head>
+  <body>
+    <div id="launch-screen" class="launch-screen" role="status" aria-label="Opening Orbit Vault"><img src="/orbitt-vault/app-icon.svg" alt="" width="128" height="128" fetchpriority="high" /><div id="launch-error" hidden><p>Orbit Vault couldn’t open. Check your connection and try again.</p><button id="launch-retry" type="button">Reload app</button></div></div>
+    <div id="root" inert aria-hidden="true"></div>
+    <noscript><style>#launch-screen{display:none}noscript p{color:#100c1a;padding:24px;font:16px/1.5 sans-serif}</style><p>Enable JavaScript to open Orbit Vault.</p></noscript>
+    <script>
+      (()=>{
+        const onLoadError=event=>{
+          const cover=document.getElementById('launch-screen');
+          if(!cover||!(event.target instanceof HTMLScriptElement)||event.target.type!=='module')return;
+          document.getElementById('launch-error').hidden=false;
+          cover.setAttribute('role','alert');
+          cover.setAttribute('aria-label','Orbit Vault could not open');
+        };
+        document.getElementById('launch-retry').addEventListener('click',()=>location.reload());
+        window.addEventListener('error',onLoadError,true);
+        window.addEventListener('orbit:launched',()=>window.removeEventListener('error',onLoadError,true),{once:true});
+      })();
+    </script>
+  </body>
+</html>

@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { chartTime, TIMEFRAMES, type TimeframeKey } from './ChartTime';
 
-interface OHLCPoint {
+export type { TimeframeKey };
+export interface OHLCPoint {
   t: number;
   o: number;
   h: number;
@@ -244,7 +245,7 @@ export const LineChart: React.FC<LineChartProps> = ({
 
         {candleMode && <g>{candleElements}</g>}
 
-        {currentPriceY !== null && (
+        {currentPriceY !== null && currentPrice !== null && currentPrice !== undefined && (
           <>
             <line
               x1={PADDING_LEFT}
