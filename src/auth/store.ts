@@ -44,7 +44,11 @@ function getDeviceFingerprint(): DeviceFingerprint {
 function loadKeys(): AuthKey[] {
   try {
     const stored = localStorage.getItem('orbitt-keys');
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    // Handle both array format (new) and object format (legacy)
+    if (Array.isArray(parsed)) return parsed;
+    return Object.values(parsed);
   } catch {
     return [];
   }

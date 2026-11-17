@@ -11,6 +11,7 @@ export type Token = {
   name: string;
   chain: Chain;
   icon: string;
+  iconPath?: string; // Relative path to icon in public/tokens/
   /** Optional user-selected emoji/mark; blank uses the local token logo in the catalog. */
   iconOverride?: string;
   price: number;
