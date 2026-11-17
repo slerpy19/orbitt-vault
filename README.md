@@ -69,3 +69,4 @@ The centralized starter prices in `src/catalog.ts` were retrieved from CoinPapri
 ## Token icons
 
 Supported assets use centralized, locally bundled logos from `public/tokens/`, so they appear consistently in wallet rows, search, details, transaction history, and account asset lists without runtime image requests. Eighteen branded SVGs come from [`@web3icons/core`](https://github.com/0xa3k5/web3icons) 4.0.55 under its MIT license; Hyperliquid (HYPE) and Toncoin (TON) marks are from CoinPaprika's logo resources. The attribution and license are in `public/tokens/ASSET-SOURCES.md` and `public/tokens/WEB3ICONS-LICENCE.txt`. User-selected icon overrides are preserved; leaving an override blank keeps the catalog logo. Custom assets without logos retain their user-entered mark and use the asset symbol if no mark is set.
+# orbitt-vault
