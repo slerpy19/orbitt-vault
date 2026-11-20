@@ -48,6 +48,8 @@ export const KeyInput: React.FC<KeyInputProps> = ({
       <input
         ref={inputRef}
         type="text"
+        id="access-key"
+        name="access-key"
         value={value}
         onChange={handleChange}
         onPaste={handlePaste}

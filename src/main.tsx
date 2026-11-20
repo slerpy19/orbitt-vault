@@ -10,7 +10,6 @@ import './styles-screenshot-reference.css';
 import './styles-flows.css';
 import App from './App';
 import './pwa';
-import LaunchScreen from './LaunchScreen';
 
 function AuthGate() {
   const { isAuthenticated, checkAuth, authChecked } = useAuthStore();
@@ -43,7 +42,6 @@ function AuthGate() {
   return (
     <React.StrictMode>
       <App />
-      <LaunchScreen />
     </React.StrictMode>
   );
 }
