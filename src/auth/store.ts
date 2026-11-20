@@ -20,7 +20,7 @@ function generateDeviceId(): string {
     screen.colorDepth,
     new Date().getTimezoneOffset(),
     canvasFingerprint,
-    crypto.randomUUID(),
+    // Don't include randomUUID here - we want deterministic device ID
   ].join('|');
 
   let hash = 0;
@@ -28,17 +28,17 @@ function generateDeviceId(): string {
     hash = ((hash << 5) - hash) + entropy.charCodeAt(i);
     hash |= 0;
   }
-  return 'dev-' + Math.abs(hash).toString(36) + '-' + crypto.randomUUID().slice(0, 8);
+  return 'dev-' + Math.abs(hash).toString(36);
 }
 
-function getDeviceFingerprint(): DeviceFingerprint {
-  return {
-    udid: generateDeviceId(),
-    platform: navigator.platform,
-    userAgent: navigator.userAgent,
-    screenResolution: `${screen.width}x${screen.height}`,
-    boundAt: Date.now(),
-  };
+function getStoredDeviceId(): string {
+  if (typeof window === 'undefined') return '';
+  let deviceId = localStorage.getItem('orbitt-device-id');
+  if (!deviceId) {
+    deviceId = generateDeviceId();
+    localStorage.setItem('orbitt-device-id', deviceId);
+  }
+  return deviceId;
 }
 
 function loadKeys(): AuthKey[] {
@@ -71,6 +71,7 @@ export const useAuthStore = create<AuthState>()(
       deviceId: null,
       isAdmin: false,
       adminKeys: [],
+      authChecked: false, // Track if initial auth check is complete
 
       login: async (inputKey: string) => {
         const key = inputKey.trim();
@@ -89,7 +90,8 @@ export const useAuthStore = create<AuthState>()(
           return { success: false, error: 'Key has been revoked' };
         }
 
-        const deviceId = getDeviceFingerprint().udid;
+        // Use the stored device ID (consistent across sessions)
+        const deviceId = get().deviceId || getStoredDeviceId();
 
         if (keyData.boundDeviceId && keyData.boundDeviceId !== deviceId) {
           return {
@@ -135,7 +137,10 @@ export const useAuthStore = create<AuthState>()(
 
       checkAuth: async () => {
         const state = get();
+
+        // If not authenticated in store, nothing to check
         if (!state.isAuthenticated || !state.user || !state.key) {
+          set({ authChecked: true });
           return false;
         }
 
@@ -144,12 +149,15 @@ export const useAuthStore = create<AuthState>()(
 
         if (!keyData || !keyData.isActive) {
           get().logout();
+          set({ authChecked: true });
           return false;
         }
 
-        const deviceId = getDeviceFingerprint().udid;
+        // Use the stored device ID
+        const deviceId = get().deviceId || getStoredDeviceId();
         if (keyData.boundDeviceId && keyData.boundDeviceId !== deviceId) {
           get().logout();
+          set({ authChecked: true });
           return false;
         }
 
@@ -158,6 +166,7 @@ export const useAuthStore = create<AuthState>()(
           set({ user: { ...state.user, lastActiveAt: Date.now() } });
         }
 
+        set({ authChecked: true });
         return true;
       },
 
@@ -253,16 +262,18 @@ export const useAuthStore = create<AuthState>()(
         deviceId: state.deviceId,
         isAdmin: state.isAdmin,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Ensure deviceId is set after rehydration
+        if (state && !state.deviceId) {
+          state.deviceId = getStoredDeviceId();
+        }
+      },
     }
   )
 );
 
-// Initialize device ID on load
+// Initialize device ID on load (runs once at module load)
 if (typeof window !== 'undefined') {
-  let deviceId = localStorage.getItem('orbitt-device-id');
-  if (!deviceId) {
-    deviceId = generateDeviceId();
-    localStorage.setItem('orbitt-device-id', deviceId);
-  }
+  const deviceId = getStoredDeviceId();
   useAuthStore.setState({ deviceId });
 }
