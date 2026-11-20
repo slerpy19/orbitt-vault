@@ -35,6 +35,7 @@ export interface AuthState {
 
   isAdmin: boolean;
   adminKeys: AuthKey[];
+  authChecked: boolean; // Track if initial auth check is complete
 
   login: (key: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
